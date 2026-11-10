@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>貸金クエスト｜○×で学ぶ 貸金業務取扱主任者 学習RPG</title>
+<meta name="description" content="○×バトルで学ぶ、貸金業務取扱主任者試験の学習RPG。ドラクエ風に敵を倒しながら4科目＋本試験を攻略。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#07080f;
+    --scene-top:#241a3a;
+    --scene-bot:#0c0a18;
+    --ground:#1a1330;
+    --panel:#0e0f1b;
+    --ink:#f4efe2;
+    --frame:#f6f1e6;
+    --gold:#f4c04a;
+    --gold-deep:#c8901f;
+    --hp:#e8455e;
+    --hp-track:#37202c;
+    --xp:#54d6a6;
+    --xp-track:#1c2b2a;
+    --enemy-hp:#e8455e;
+    --muted:#9591a8;
+    --shadow:rgba(0,0,0,.55);
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:
+      radial-gradient(120% 80% at 50% -10%, #16112a 0%, var(--bg) 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Zen Kaku Gothic New",-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    min-height:100%;
+    padding:16px 12px 40px;
+  }
+  .pixel{font-family:"DotGothic16","Zen Kaku Gothic New",monospace;font-weight:400}
+  #app{width:100%;max-width:452px}
+
+  /* ---- generic window (DQ frame) ---- */
+  .win{
+    border:3px solid var(--frame);
+    border-radius:12px;
+    background:linear-gradient(180deg,#0f1120 0%,#0a0b15 100%);
+    box-shadow:0 6px 0 rgba(0,0,0,.35), inset 0 0 0 2px #0a0b15;
+    padding:16px 16px;
+  }
+  .screen{display:flex;flex-direction:column;gap:16px}
+  button{font-family:inherit;cursor:pointer}
+  .btn{
+    display:block;width:100%;
+    border:3px solid var(--frame);
+    border-radius:12px;
+    background:linear-gradient(180deg,#14152400,#0000);
+    color:var(--ink);
+    padding:14px 16px;
+    font-size:16px;font-weight:700;
+    box-shadow:0 5px 0 rgba(0,0,0,.4);
+    transition:transform .06s ease, background .15s;
+  }
+  .btn:hover{background:rgba(244,192,74,.1)}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.4)}
+  .btn.gold{
+    background:linear-gradient(180deg,#f6cf6a,#e0a92f);
+    color:#3a2606;border-color:#f6f1e6;
+    text-shadow:0 1px 0 rgba(255,255,255,.35);
+  }
+  .btn.gold:hover{filter:brightness(1.05)}
+  :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+  /* ---- title screen ---- */
+  #title{align-items:stretch;padding-top:22px}
+  .eyebrow{
+    text-align:center;color:var(--gold);
+    letter-spacing:.28em;font-size:12px;margin:0 0 2px;
+  }
+  .logo{
+    text-align:center;margin:0;line-height:1;
+    font-size:clamp(40px,13vw,58px);
+    background:linear-gradient(180deg,#ffe08a 0%,#f4c04a 45%,#c8901f 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 3px 0 #6e4a09) drop-shadow(0 0 14px rgba(244,192,74,.35));
+    letter-spacing:.02em;
+  }
+  .tagline{text-align:center;color:var(--muted);font-size:13px;margin:6px 0 4px;letter-spacing:.12em}
+  .coins{display:flex;justify-content:center;gap:6px;margin:2px 0 6px;font-size:20px}
+  .field{display:flex;flex-direction:column;gap:10px}
+  .field label{font-size:14px}
+  .field input{
+    font-family:"DotGothic16",monospace;font-size:18px;
+    padding:12px 14px;border-radius:10px;
+    border:3px solid var(--frame);background:#05060c;color:var(--ink);
+  }
+  .field input::placeholder{color:#5b5870}
+  .note{color:var(--muted);font-size:12px;line-height:1.7;margin:2px 2px 0}
+  .subrow{display:flex;gap:10px}
+  .subrow .btn{font-size:13px;padding:11px}
+
+  /* ---- map screen ---- */
+  .status-bar{display:flex;flex-direction:column;gap:8px}
+  .status-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .status-name{font-size:17px;font-weight:700}
+  .status-lv{font-size:14px;color:var(--gold)}
+  .status-hp{font-size:13px;font-variant-numeric:tabular-nums}
+  .bar{height:12px;border-radius:6px;background:var(--xp-track);overflow:hidden;border:1px solid #000}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,#37b98a,var(--xp));transition:width .5s ease}
+  .xp-label{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}
+  .sec-title{color:var(--gold);letter-spacing:.16em;font-size:13px;margin:6px 2px 0}
+  .areas{display:flex;flex-direction:column;gap:10px}
+  .area{
+    text-align:left;position:relative;
+    display:flex;align-items:center;gap:12px;
+    border:3px solid var(--frame);border-radius:12px;
+    background:linear-gradient(180deg,#111325,#0a0b15);
+    padding:12px 14px;color:var(--ink);
+    box-shadow:0 5px 0 rgba(0,0,0,.4);
+  }
+  .area:hover:not(:disabled){background:rgba(244,192,74,.09)}
+  .area:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.4)}
+  .area:disabled{opacity:.42;filter:saturate(.4);cursor:not-allowed}
+  .area .mk{font-family:"DotGothic16";color:var(--gold);font-size:18px;width:16px;text-align:center;flex:none}
+  .area .body{flex:1;min-width:0}
+  .area .an{font-size:16px;font-weight:700}
+  .area .as{font-size:12px;color:var(--muted);margin-top:2px}
+  .area .prog{
+    flex:none;font-size:11px;color:var(--gold);text-align:right;
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+  .area .prog.done{color:var(--xp)}
+  .area .lock{position:absolute;right:12px;font-size:15px}
+
+  /* ---- battle screen ---- */
+  #battle{gap:12px}
+  .scene{
+    position:relative;height:210px;border-radius:12px;overflow:hidden;
+    background:linear-gradient(180deg,var(--scene-top) 0%,#1a1330 62%,var(--scene-bot) 100%);
+    border:3px solid var(--frame);
+  }
+  .scene::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:64px;
+    background:linear-gradient(180deg,#2a1e4a,#140f28);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.05);
+  }
+  .stars{position:absolute;inset:0;opacity:.5}
+  .enemy-name{
+    position:absolute;top:10px;left:0;right:0;text-align:center;
+    font-family:"DotGothic16";font-size:16px;color:var(--frame);
+    text-shadow:0 2px 0 #000;z-index:3;
+  }
+  .ehp{
+    position:absolute;top:34px;left:50%;transform:translateX(-50%);
+    width:150px;height:8px;border-radius:5px;background:var(--hp-track);
+    border:1px solid #000;overflow:hidden;z-index:3;
+  }
+  .ehp > i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff6a7d,var(--enemy-hp));transition:width .45s ease}
+  .sprite{
+    position:absolute;left:50%;bottom:40px;transform:translateX(-50%);
+    z-index:2;animation:float 2.6s ease-in-out infinite;
+    filter:drop-shadow(0 10px 6px rgba(0,0,0,.5));
+  }
+  .sprite svg{display:block;width:150px;height:auto}
+  @keyframes float{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-8px)}}
+  .sprite.hit{animation:shake .34s linear}
+  @keyframes shake{0%,100%{transform:translateX(-50%)}20%{transform:translateX(-58%)}40%{transform:translateX(-44%)}60%{transform:translateX(-56%)}80%{transform:translateX(-48%)}}
+  .sprite.dead{animation:die .6s ease forwards}
+  @keyframes die{to{opacity:0;transform:translateX(-50%) translateY(14px) scale(.7);filter:blur(2px)}}
+  .dmg-pop{
+    position:absolute;left:50%;top:70px;transform:translateX(-50%);
+    font-family:"DotGothic16";font-size:30px;color:#ffd34d;
+    text-shadow:0 2px 0 #000,0 0 12px rgba(255,120,60,.7);
+    z-index:4;pointer-events:none;opacity:0;
+  }
+  .dmg-pop.go{animation:pop .8s ease forwards}
+  .dmg-pop.crit{color:#ff5a4d;font-size:36px}
+  @keyframes pop{0%{opacity:0;transform:translateX(-50%) translateY(6px) scale(.6)}25%{opacity:1;transform:translateX(-50%) translateY(-6px) scale(1.15)}70%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-26px)}}
+  .scene.flash-red{animation:flashred .3s ease}
+  @keyframes flashred{50%{box-shadow:inset 0 0 60px 20px rgba(232,69,94,.55)}}
+
+  .pstat{display:flex;justify-content:space-between;align-items:center;font-family:"DotGothic16";font-size:15px;padding:10px 14px}
+  .pstat .php{display:flex;align-items:center;gap:8px}
+  .pbar{width:88px;height:9px;border-radius:5px;background:var(--hp-track);border:1px solid #000;overflow:hidden}
+  .pbar > i{display:block;height:100%;background:linear-gradient(90deg,#ff6a7d,var(--hp));transition:width .4s ease}
+  .php-num{font-variant-numeric:tabular-nums;font-size:14px}
+
+  .msgbox{min-height:118px;display:flex;flex-direction:column;justify-content:center;gap:14px}
+  .msg{font-size:16px;line-height:1.75}
+  .msg .after{color:var(--gold);font-weight:700}
+  .cont{align-self:flex-end;color:var(--gold);font-family:"DotGothic16";animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .qtext{font-size:16.5px;line-height:1.8;font-weight:500}
+  .ox{display:flex;gap:12px;margin-top:2px}
+  .ox button{
+    flex:1;border:3px solid var(--frame);border-radius:12px;background:#0a0b15;
+    padding:16px 0;box-shadow:0 5px 0 rgba(0,0,0,.4);transition:transform .06s;
+  }
+  .ox button:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.4)}
+  .ox .maru{color:#5bd6a6;font-size:30px}
+  .ox .batsu{color:#ff6a7d;font-size:30px}
+  .ox button:hover .maru{filter:drop-shadow(0 0 8px rgba(91,214,166,.7))}
+  .ox button:hover .batsu{filter:drop-shadow(0 0 8px rgba(255,106,125,.7))}
+  .explain{display:flex;flex-direction:column;gap:12px}
+  .ans-badge{font-family:"DotGothic16";font-size:15px}
+  .ans-badge b{font-size:20px}
+  .ans-badge .ok{color:var(--xp)}
+  .ans-badge .ng{color:var(--hp)}
+  .exp-text{font-size:14px;line-height:1.85;color:#e6e2d4}
+
+  /* ---- result / gameover ---- */
+  .result{align-items:center;text-align:center;gap:14px;padding:26px 18px}
+  .result h2{font-family:"DotGothic16";margin:0;font-size:24px}
+  .result .big{font-size:44px}
+  .result .win-c{color:var(--gold)}
+  .result p{margin:0;line-height:1.8;font-size:14px;color:#e6e2d4}
+  .lv-up{color:var(--xp);font-family:"DotGothic16";font-size:16px}
+
+  .foot{text-align:center;color:#4b485e;font-size:11px;margin-top:18px;line-height:1.7}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001s!important}
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+/* ============================================================
+   貸金クエスト  ―  ○×で学ぶ 貸金業務取扱主任者 学習RPG
+   ============================================================ */
+
+/* -------- monster sprite (inline SVG by shape) -------- */
+function sprite(shape, c){
+  const eye = (x)=>`<circle cx="${x}" cy="0" r="7" fill="#fff"/><circle cx="${x+1}" cy="1" r="3.4" fill="#20140a"/>`;
+  const S={
+    ghost:`<svg viewBox="0 0 160 150"><g fill="${c}"><path d="M80 8c-30 0-50 24-50 58v62c0 6 7 9 11 4l9-11 10 12c3 3 8 3 11 0l9-12 10 12c3 3 8 3 11 0l9-12 9 11c4 5 11 2 11-4V66C130 32 110 8 80 8z"/></g><g transform="translate(80 60)"><g transform="translate(-20 0)">${eye(0)}</g><g transform="translate(20 0)">${eye(0)}</g></g></svg>`,
+    slime:`<svg viewBox="0 0 160 130"><path d="M80 14c-8 0-10 22-20 34C40 66 22 78 22 100c0 18 26 24 58 24s58-6 58-24c0-22-18-34-38-52-10-12-12-34-20-34z" fill="${c}"/><g transform="translate(80 86)"><g transform="translate(-18 0)">${eye(0)}</g><g transform="translate(18 0)">${eye(0)}</g><path d="M-10 20 q10 10 20 0" stroke="#20140a" stroke-width="4" fill="none" stroke-linecap="round"/></g></svg>`,
+    golem:`<svg viewBox="0 0 160 150"><g fill="${c}"><rect x="34" y="20" width="92" height="80" rx="10"/><rect x="20" y="104" width="46" height="40" rx="8"/><rect x="94" y="104" width="46" height="40" rx="8"/><rect x="6" y="40" width="24" height="54" rx="8"/><rect x="130" y="40" width="24" height="54" rx="8"/></g><rect x="48" y="40" width="64" height="30" rx="6" fill="#10101c"/><g transform="translate(80 55)"><g transform="translate(-16 0)"><circle r="6" fill="${c}"/></g><g transform="translate(16 0)"><circle r="6" fill="${c}"/></g></g></svg>`,
+    dragon:`<svg viewBox="0 0 170 150"><path d="M40 96c-18-4-30-20-26-40 3-14 16-16 22-6-2-20 14-34 30-30 4-14 22-16 30-4 16-2 30 12 26 30 14 6 16 26 4 38-10 10-26 8-34-2-8 12-28 14-40 6-4 6-10 8-14 8z" fill="${c}"/><path d="M120 34l18-14-2 22z" fill="${c}"/><g transform="translate(70 58)"><g transform="translate(-12 0)">${eye(0)}</g><g transform="translate(20 -2)">${eye(0)}</g></g><path d="M52 96 q16 12 34 2" stroke="#20140a" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`,
+    devil:`<svg viewBox="0 0 160 150"><path d="M42 18l10 20 M118 18l-10 20" stroke="${c}" stroke-width="12" stroke-linecap="round"/><path d="M80 30c-32 0-52 24-52 56 0 30 22 52 52 52s52-22 52-52c0-32-20-56-52-56z" fill="${c}"/><g transform="translate(80 74)"><g transform="translate(-20 0)"><path d="M-8 -6 L8 0 L-8 6z" fill="#20140a"/></g><g transform="translate(20 0)"><path d="M8 -6 L-8 0 L8 6z" fill="#20140a"/></g><path d="M-16 22 L0 30 L16 22" stroke="#20140a" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`,
+    king:`<svg viewBox="0 0 160 160"><path d="M34 40l12 22 16-26 18 26 16-26 12 30z" fill="${c}"/><circle cx="46" cy="38" r="6" fill="#ffd34d"/><circle cx="114" cy="38" r="6" fill="#ffd34d"/><circle cx="80" cy="30" r="6" fill="#ffd34d"/><path d="M80 60c-30 0-48 22-48 52 0 30 20 46 48 46s48-16 48-46c0-30-18-52-48-52z" fill="${c}"/><g transform="translate(80 104)"><g transform="translate(-20 0)">${eye(0)}</g><g transform="translate(20 0)">${eye(0)}</g></g><path d="M-2 0" /></svg>`,
+    boss:`<svg viewBox="0 0 180 170"><path d="M40 44l14 24 18-30 18 30 18-30 14 30z" fill="#ffd34d"/><circle cx="90" cy="24" r="7" fill="#fff"/><path d="M90 62c-36 0-58 26-58 60 0 34 24 52 58 52s58-18 58-52c0-34-22-60-58-60z" fill="${c}"/><path d="M40 30l8 18 M140 30l-8 18" stroke="${c}" stroke-width="10" stroke-linecap="round"/><g transform="translate(90 112)"><g transform="translate(-24 0)"><path d="M-9 -7 L9 0 L-9 7z" fill="#20140a"/></g><g transform="translate(24 0)"><path d="M9 -7 L-9 0 L9 7z" fill="#20140a"/></g><path d="M-20 26 L0 34 L20 26" stroke="#20140a" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`
+  };
+  return S[shape]||S.ghost;
+}
+
+/* -------- game data: 試験4科目 + 本試験ボス -------- */
+const AREAS = [
+  {
+    id:"a1", name:"かしきんぎょうほうの まち", sub:"法及び関係法令に関すること",
+    monsters:[
+      { name:"ムトウロク", shape:"ghost", color:"#7c6bd6", questions:[
+        {q:"貸金業を営もうとする者は、内閣総理大臣（財務局長）又は都道府県知事の登録を受けなければならない。", a:true,
+         exp:"2以上の都道府県に営業所を置く場合は内閣総理大臣（財務局長）、1つの都道府県のみなら都道府県知事の登録が必要です。"},
+        {q:"貸金業者の登録の有効期間は5年である。", a:false,
+         exp:"貸金業者の登録の有効期間は「3年」です。継続するには更新登録が必要です。"},
+        {q:"貸金業の登録を受けずに貸金業を営んだ者は、刑事罰の対象となる。", a:true,
+         exp:"無登録営業は貸金業法違反として刑事罰（10年以下の懲役等）の対象になります。いわゆるヤミ金融です。"},
+        {q:"貸金業者は、広告に、登録簿に登録された電話番号以外の電話番号を表示してはならない。", a:true,
+         exp:"ヤミ金対策として、広告・書面には登録された電話番号以外を記載できません。"},
+        {q:"貸金業者は、営業所ごとに標識を掲示する必要はない。", a:false,
+         exp:"営業所ごとに、公衆の見やすい場所へ登録番号等を記載した標識の掲示が義務づけられています。"},
+      ]},
+      { name:"シュニンシャ・レイ", shape:"golem", color:"#5aa9c9", questions:[
+        {q:"貸金業者は、営業所ごとに、貸付けの業務に従事する者50人に1人以上の割合で貸金業務取扱主任者を置かなければならない。", a:true,
+         exp:"「従業者50人に主任者1人以上」が設置基準です。欠けた場合は2週間以内に補充が必要です。"},
+        {q:"貸金業務取扱主任者の登録の有効期間は3年である。", a:true,
+         exp:"主任者登録も有効期間は3年で、更新には登録講習の修了が必要です。"},
+        {q:"貸金業務取扱主任者になるには、主任者資格試験に合格し、登録を受ける必要がある。", a:true,
+         exp:"試験合格後、内閣総理大臣の登録を受けて主任者となります。"},
+        {q:"主任者は、貸付けの契約について、従業者が法令を遵守するよう助言・指導する立場にある。", a:true,
+         exp:"主任者は営業所における法令遵守の要として、助言・指導を行う役割を担います。"},
+      ]},
+      { name:"ソウリョウキング", shape:"king", color:"#d67c3a", questions:[
+        {q:"貸金業者は、個人顧客の借入残高の合計が年収の3分の1を超える貸付契約を、原則として締結してはならない。", a:true,
+         exp:"総量規制です。個人向け貸付けは原則「年収の3分の1」まで。返済能力を超える過剰貸付けを防ぐ規制です。"},
+        {q:"住宅の建設・購入に必要な資金の貸付け（住宅ローン）は、総量規制の対象となる。", a:false,
+         exp:"住宅ローンは総量規制の「除外貸付け」で、残高計算に含めません。"},
+        {q:"自動車の購入に際して当該自動車を担保とする貸付けは、総量規制の除外貸付けに該当する。", a:true,
+         exp:"いわゆる自動車ローン（当該自動車が担保）は除外貸付けです。"},
+        {q:"総量規制は、法人に対する貸付けにも適用される。", a:false,
+         exp:"総量規制の対象は「個人顧客」です。法人向け貸付けには適用されません。"},
+        {q:"顧客の1社での借入残高が50万円を超える貸付けでは、原則として年収を証明する書類の提出を受けなければならない。", a:true,
+         exp:"1社50万円超、または他社と合算して100万円超の場合、源泉徴収票等の年収証明が必要です。"},
+      ]},
+    ]
+  },
+  {
+    id:"a2", name:"みんぽうの もり", sub:"貸付け及び取引に関する法令・実務",
+    monsters:[
+      { name:"ホショウレイ", shape:"ghost", color:"#6b8fd6", questions:[
+        {q:"保証契約は、書面でしなければ、その効力を生じない。", a:true,
+         exp:"保証契約は書面（又は電磁的記録）でしなければ効力を生じません（民法446条2項）。"},
+        {q:"連帯保証人は、催告の抗弁権及び検索の抗弁権を有する。", a:false,
+         exp:"連帯保証人は催告の抗弁権・検索の抗弁権を有しません。だからいきなり全額請求できます。"},
+        {q:"保証人の負担が主たる債務より重いときは、主たる債務の限度に減縮される。", a:true,
+         exp:"保証債務は主たる債務より重くなれません（付従性）。重い部分は主債務の限度に減縮されます。"},
+        {q:"個人が事業のために負担する貸金債務の保証では、公正証書で保証意思を表示しなければ効力を生じない場合がある。", a:true,
+         exp:"事業性貸金債務の個人保証は、原則として保証意思宣明公正証書の作成が必要です（民法465条の6）。"},
+      ]},
+      { name:"ジコウ・オーガ", shape:"devil", color:"#8a5ac9", questions:[
+        {q:"債権は、権利を行使できることを知った時から5年間行使しないと、時効によって消滅する。", a:true,
+         exp:"改正民法の一般的な消滅時効は「知った時から5年」または「行使できる時から10年」です（166条1項）。"},
+        {q:"時効の利益は、あらかじめ（時効完成前に）放棄することができる。", a:false,
+         exp:"時効の利益はあらかじめ放棄できません（民法146条）。債権者の圧力による放棄を防ぐためです。"},
+        {q:"債務者が時効完成後に債務を承認した場合でも、後から時効を援用できる。", a:false,
+         exp:"時効完成後に承認すると、信義則上その時効の援用はできなくなります（判例）。"},
+        {q:"弁済について正当な利益を有する第三者は、債務者の意思に反しても弁済できる。", a:true,
+         exp:"正当な利益を有する第三者（連帯保証人・物上保証人等）は、債務者の意思に反しても弁済できます。"},
+      ]},
+      { name:"タンポ・ドラゴン", shape:"dragon", color:"#4fae7a", questions:[
+        {q:"抵当権は、目的物を債権者に引き渡さずに設定することができる。", a:true,
+         exp:"抵当権は非占有担保。設定者が目的物を使用・収益しながら担保にできます。"},
+        {q:"同一の不動産に、複数の抵当権を設定することはできない。", a:false,
+         exp:"同一不動産に順位を付けて複数の抵当権（1番・2番…）を設定できます。"},
+        {q:"土地に設定された抵当権の効力は、原則としてその土地上の建物には及ばない。", a:true,
+         exp:"土地と建物は別個の不動産です。土地の抵当権は原則として建物に及びません。"},
+        {q:"根抵当権は、一定の範囲に属する不特定の債権を、極度額の限度で担保する。", a:true,
+         exp:"継続的取引から生じる不特定の債権を極度額まで担保するのが根抵当権です。"},
+      ]},
+    ]
+  },
+  {
+    id:"a3", name:"ほごほうの みさき", sub:"資金需要者等の保護に関すること",
+    monsters:[
+      { name:"コジンジョウホウ", shape:"slime", color:"#c95a8f", questions:[
+        {q:"個人情報取扱事業者は、個人情報を取り扱うにあたり、利用目的をできる限り特定しなければならない。", a:true,
+         exp:"利用目的の特定は個人情報保護法の基本原則です。特定した目的の範囲内で取り扱います。"},
+        {q:"個人データを第三者へ提供する場合、原則としてあらかじめ本人の同意が必要である。", a:true,
+         exp:"第三者提供には原則として本人の同意が必要です（オプトアウト等の例外あり）。"},
+        {q:"要配慮個人情報（病歴・信条等）は、原則としてあらかじめ本人の同意を得て取得しなければならない。", a:true,
+         exp:"要配慮個人情報は取得の時点で原則本人同意が必要と、通常より厳格に扱われます。"},
+        {q:"指定信用情報機関から取得した個人信用情報は、返済能力の調査以外の目的にも自由に使ってよい。", a:false,
+         exp:"信用情報は返済能力調査の目的にのみ使用でき、目的外使用は禁止されています。"},
+      ]},
+      { name:"ショウヒシャ・スペクター", shape:"ghost", color:"#5ac9b0", questions:[
+        {q:"事業者の不実告知により消費者が誤認して契約した場合、消費者はその契約を取り消すことができる。", a:true,
+         exp:"消費者契約法により、不実告知・断定的判断の提供等による契約は取り消せます。"},
+        {q:"消費者契約で、事業者の損害賠償責任の全部を免除する条項は有効である。", a:false,
+         exp:"事業者の責任の全部を免除する条項は無効です（消費者契約法8条）。"},
+        {q:"景品表示法は、実際より著しく優良と誤認させる表示（優良誤認表示）を禁止している。", a:true,
+         exp:"優良誤認表示・有利誤認表示は景品表示法で禁止されています。"},
+        {q:"貸金業の金銭消費貸借契約には、当然にクーリング・オフが適用される。", a:false,
+         exp:"貸金の貸付契約に一般的なクーリング・オフの適用はありません。"},
+      ]},
+      { name:"キンシ・デビル", shape:"devil", color:"#c94a4a", questions:[
+        {q:"貸金業者は、債務者等を威迫し、又は私生活の平穏を害する言動で困惑させてはならない。", a:true,
+         exp:"取立てにおける威迫・私生活の平穏を害する行為は禁止されています（貸金業法21条）。"},
+        {q:"貸金業者は、正当な理由なく、午後9時から午前8時までの間に取立てのため電話・訪問をしてはならない。", a:true,
+         exp:"深夜・早朝（21時〜翌8時）の取立ては原則禁止です（21条）。"},
+        {q:"貸金業者は、債務者に代わって親族など第三者に弁済を要求してはならない。", a:true,
+         exp:"債務者以外の者に対し、正当な理由なく弁済を要求することは禁止されています。"},
+        {q:"貸金業者は、契約の勧誘に際し、資金需要者に虚偽のことを告げてもよい。", a:false,
+         exp:"虚偽告知は禁止行為です。事実と異なる説明で契約を勧誘してはいけません。"},
+      ]},
+    ]
+  },
+  {
+    id:"a4", name:"ざいむの とう", sub:"財務及び会計に関すること",
+    monsters:[
+      { name:"カケイ・スライム", shape:"slime", color:"#5a86c9", questions:[
+        {q:"可処分所得とは、収入から所得税・住民税・社会保険料などを差し引いた手取り収入をいう。", a:true,
+         exp:"可処分所得＝収入−（税金＋社会保険料）。実際に使える手取りのお金です。"},
+        {q:"家計の収支で、支出が収入を上回る状態を「黒字」という。", a:false,
+         exp:"支出が収入を上回るのは「赤字」です。収入が上回れば黒字です。"},
+        {q:"総返済負担率は、すべての借入れの年間返済額の合計を年収で割って求める。", a:true,
+         exp:"総返済負担率＝年間返済額合計 ÷ 年収。低いほど返済に余裕があります。"},
+        {q:"家計のバランスシートでは、資産から負債を差し引いたものを純資産という。", a:true,
+         exp:"純資産＝資産−負債。家計の正味の財産を表します。"},
+      ]},
+      { name:"ザイム・ゴーレム", shape:"golem", color:"#b98a3a", questions:[
+        {q:"貸借対照表は、一定時点における企業の資産・負債・純資産の状態を表す。", a:true,
+         exp:"貸借対照表（B/S）は決算日など一定「時点」の財政状態を示します。"},
+        {q:"貸借対照表では「資産＝負債＋純資産」の関係が常に成り立つ。", a:true,
+         exp:"これが貸借対照表等式です。左右（借方・貸方）は必ず一致します。"},
+        {q:"損益計算書は、一定期間における企業の収益と費用から利益を計算する。", a:true,
+         exp:"損益計算書（P/L）は一定「期間」の経営成績（収益−費用＝利益）を示します。"},
+        {q:"流動比率は、流動負債を流動資産で割って求める。", a:false,
+         exp:"流動比率＝流動資産 ÷ 流動負債 ×100。高いほど短期の支払能力が高いとされます。"},
+      ]},
+    ]
+  },
+  {
+    id:"a5", name:"ほんしけん かいじょう", sub:"全分野ミックス ・ ラスボス",
+    boss:true,
+    monsters:[
+      { name:"しゅにんしゃ試験・ボス", shape:"boss", color:"#8a5ad6", questions:[
+        {q:"出資法が定める貸金業者の上限金利は、年20％である。", a:true,
+         exp:"出資法の上限は年20％。これを超えて貸し付けると刑事罰の対象です。"},
+        {q:"利息制限法上、元本10万円以上100万円未満の貸付けの上限金利は年18％である。", a:true,
+         exp:"利息制限法は 10万円未満＝年20％／10万円以上100万円未満＝年18％／100万円以上＝年15％。"},
+        {q:"利息制限法上、元本100万円以上の貸付けの上限金利は年20％である。", a:false,
+         exp:"100万円以上は年「15％」が上限です。20％ではありません。"},
+        {q:"礼金・手数料・調査料などは、原則として利息とみなされる（みなし利息）。", a:true,
+         exp:"名目を問わず、貸付けに関して受け取る金銭は原則みなし利息として上限規制の対象です。"},
+        {q:"営業的金銭消費貸借の遅延損害金の上限は、年20％である。", a:true,
+         exp:"貸金業者の営業的金銭消費貸借では、遅延損害金の上限も年20％です（利息制限法7条）。"},
+        {q:"指定信用情報機関に加入する貸金業者は、保有する個人信用情報を指定信用情報機関に提供しなければならない。", a:true,
+         exp:"加入貸金業者には信用情報の提供義務があり、多重債務の防止に役立てられます。"},
+        {q:"契約を締結したときは、遅滞なく契約内容を明らかにする書面（契約締結時の書面）を交付しなければならない。", a:true,
+         exp:"いわゆる17条書面の交付義務です。契約締結前には契約締結前書面も必要です。"},
+        {q:"貸金業協会は、貸金業法に基づく自主規制機関である。", a:true,
+         exp:"日本貸金業協会は自主規制ルールの制定などを行う認可法人（自主規制機関）です。"},
+      ]},
+    ]
+  },
+];
+
+/* -------- state / save -------- */
+const SAVE_KEY="kashikin_quest_save_v1";
+let G=null;
+function newGame(name){
+  return { name:name||"みならい", level:1, xp:0, maxHp:40, hp:40, atk:12,
+           clears:{}, }; // clears[areaId] = number of monsters cleared
+}
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(G)); }catch(e){} }
+function load(){ try{ const s=localStorage.getItem(SAVE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function xpToNext(){ return G.level*28; }
+function areaCleared(a){ return (G.clears[a.id]||0) >= a.monsters.length; }
+function areaUnlocked(i){ return i===0 || areaCleared(AREAS[i-1]); }
+function totalQuestions(){ return AREAS.reduce((n,a)=>n+a.monsters.reduce((m,x)=>m+x.questions.length,0),0); }
+
+const app=document.getElementById("app");
+function esc(s){return s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+
+/* ======================= TITLE ======================= */
+function renderTitle(){
+  const saved=load();
+  app.innerHTML=`
+  <section class="screen" id="title">
+    <p class="eyebrow pixel">かしきん むしゅにんしゃ しけん</p>
+    <h1 class="logo pixel">貸金クエスト</h1>
+    <div class="coins">🪙🪙🪙</div>
+    <p class="tagline">○×で まなぶ 主任者しけん RPG</p>
+    <div class="win field" style="margin-top:6px">
+      <label class="pixel">なまえを いれてください。</label>
+      <input id="pname" maxlength="8" placeholder="みならい" value="${saved?esc(saved.name):""}">
+      <button class="btn gold pixel" id="startBtn">ぼうけんを はじめる</button>
+      ${saved?`<button class="btn pixel" id="contBtn" style="font-size:14px">つづきから （Lv ${saved.level}）</button>`:""}
+    </div>
+    <p class="note">正解すれば まものに こうげき。まちがえると まものが 反撃してくる。<br>
+      たおした まものの 経験値で レベルが 上がり、こうげき力と 最大HPが のびる。<br>
+      全${totalQuestions()}問・5かいそう。</p>
+    ${saved?`<div class="subrow"><button class="btn pixel" id="resetBtn">さいしょから やりなおす</button></div>`:""}
+    <p class="foot">貸金業務取扱主任者試験の学習用ゲームです。出題は学習目的の要点整理であり、<br>実際の試験問題・法令の正式な条文とは異なる場合があります。</p>
+  </section>`;
+  const start=()=>{ const v=(document.getElementById("pname").value||"").trim().slice(0,8)||"みならい"; G=newGame(v); save(); renderMap(); };
+  document.getElementById("startBtn").onclick=start;
+  document.getElementById("pname").addEventListener("keydown",e=>{ if(e.key==="Enter") start(); });
+  if(saved){
+    document.getElementById("contBtn").onclick=()=>{ G=saved; if(G.hp<=0)G.hp=G.maxHp; renderMap(); };
+    document.getElementById("resetBtn").onclick=()=>{ try{localStorage.removeItem(SAVE_KEY);}catch(e){} renderTitle(); };
+  }
+}
+
+/* ======================= MAP ======================= */
+function renderMap(){
+  const need=xpToNext(); const remain=Math.max(0,need-G.xp);
+  const areasHtml=AREAS.map((a,i)=>{
+    const unlocked=areaUnlocked(i);
+    const cleared=G.clears[a.id]||0; const total=a.monsters.length;
+    const done=cleared>=total;
+    return `<button class="area" ${unlocked?"":"disabled"} data-i="${i}">
+      <span class="mk pixel">${done?"★":"▶"}</span>
+      <span class="body">
+        <span class="an pixel">${esc(a.name)}</span>
+        <span class="as">${esc(a.sub)}</span>
+      </span>
+      ${unlocked
+        ? `<span class="prog ${done?"done":""} pixel">まもの ${cleared}/${total}</span>`
+        : `<span class="lock">🔒</span>`}
+    </button>`;
+  }).join("");
+  app.innerHTML=`
+  <section class="screen">
+    <div class="win status-bar">
+      <div class="status-top">
+        <span class="status-name pixel">${esc(G.name)}</span>
+        <span class="status-lv pixel">レベル ${G.level}</span>
+        <span class="status-hp pixel">HP ${G.hp}/${G.maxHp}</span>
+      </div>
+      <div class="bar"><i style="width:${Math.min(100,(G.xp/need)*100)}%"></i></div>
+      <div class="xp-label"><span>つぎの レベルまで あと ${remain}</span><span>EXP ${G.xp}/${need}</span></div>
+    </div>
+    <p class="sec-title pixel">ゆくさきを えらぶ</p>
+    <div class="areas">${areasHtml}</div>
+    <div class="subrow"><button class="btn pixel" id="backTitle" style="font-size:13px">タイトルへ もどる</button></div>
+  </section>`;
+  document.querySelectorAll(".area").forEach(b=>{
+    if(b.disabled) return;
+    b.onclick=()=>startArea(parseInt(b.dataset.i,10));
+  });
+  document.getElementById("backTitle").onclick=()=>{ save(); renderTitle(); };
+  save();
+}
+
+/* ======================= BATTLE ======================= */
+let B=null; // battle state
+function startArea(areaIdx){
+  const area=AREAS[areaIdx];
+  const cleared=G.clears[area.id]||0;
+  const startMon = cleared>=area.monsters.length ? 0 : cleared; // continue from first uncleared
+  G.hp=G.maxHp; // heal on entering an area
+  B={ areaIdx, monIdx:startMon, area };
+  beginMonster();
+}
+function beginMonster(){
+  const m=B.area.monsters[B.monIdx];
+  const dmgPer = Math.max(8, G.atk); // base
+  B.enemyMax = Math.max(1, m.questions.length) * (dmgPer+2);
+  B.enemyHp = B.enemyMax;
+  B.qOrder = shuffle([...m.questions.keys()]);
+  B.qPos = 0;
+  B.mon=m;
+  renderBattleFrame();
+  queueMessages([ `${m.name}が あらわれた！` ], ()=>askQuestion());
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function renderBattleFrame(){
+  const m=B.mon;
+  app.innerHTML=`
+  <section class="screen" id="battle">
+    <div class="scene" id="scene">
+      <canvas class="stars" id="stars" width="440" height="210"></canvas>
+      <div class="enemy-name pixel" id="ename">${esc(m.name)}</div>
+      <div class="ehp"><i id="ehpbar"></i></div>
+      <div class="dmg-pop pixel" id="dmg"></div>
+      <div class="sprite" id="sprite">${sprite(m.shape,m.color)}</div>
+    </div>
+    <div class="win pstat">
+      <span class="pixel">${esc(G.name)}</span>
+      <span class="php"><span class="pbar"><i id="pbar"></i></span><span class="php-num pixel" id="pnum">HP ${G.hp}/${G.maxHp}</span></span>
+      <span class="pixel">Lv ${G.level}</span>
+    </div>
+    <div class="win" id="dialog"></div>
+  </section>`;
+  drawStars();
+  updateBars(true);
+}
+function drawStars(){
+  const c=document.getElementById("stars"); if(!c)return; const x=c.getContext("2d");
+  x.clearRect(0,0,c.width,c.height);
+  for(let i=0;i<40;i++){ const px=Math.random()*c.width, py=Math.random()*140;
+    x.fillStyle="rgba(255,255,255,"+(Math.random()*.5+.15)+")"; const s=Math.random()<.2?2:1; x.fillRect(px,py,s,s); }
+}
+function updateBars(instant){
+  const eb=document.getElementById("ehpbar"); if(eb) eb.style.width=Math.max(0,(B.enemyHp/B.enemyMax)*100)+"%";
+  const pb=document.getElementById("pbar"); if(pb) pb.style.width=Math.max(0,(G.hp/G.maxHp)*100)+"%";
+  const pn=document.getElementById("pnum"); if(pn) pn.textContent=`HP ${Math.max(0,G.hp)}/${G.maxHp}`;
+}
+
+/* ----- message queue (DQ-style) ----- */
+function queueMessages(msgs, done){
+  const dlg=document.getElementById("dialog");
+  let i=0;
+  function show(){
+    if(i>=msgs.length){ done&&done(); return; }
+    dlg.innerHTML=`<div class="msgbox"><div class="msg">${msgs[i]}</div><div class="cont pixel">▼</div></div>`;
+    dlg.style.cursor="pointer";
+    dlg.onclick=()=>{ i++; show(); };
+    i;
+  }
+  show();
+}
+
+function askQuestion(){
+  const m=B.mon;
+  if(B.qPos>=B.qOrder.length){ B.qOrder=shuffle([...m.questions.keys()]); B.qPos=0; } // loop if needed
+  const q=m.questions[B.qOrder[B.qPos]];
+  B.curQ=q;
+  const dlg=document.getElementById("dialog");
+  dlg.style.cursor="default"; dlg.onclick=null;
+  dlg.innerHTML=`<div class="msgbox">
+      <div class="qtext">${esc(q.q)}</div>
+      <div class="ox">
+        <button id="ansO" aria-label="まる"><span class="maru pixel">◯</span></button>
+        <button id="ansX" aria-label="ばつ"><span class="batsu pixel">✕</span></button>
+      </div>
+    </div>`;
+  document.getElementById("ansO").onclick=()=>answer(true);
+  document.getElementById("ansX").onclick=()=>answer(false);
+}
+
+function answer(choice){
+  const q=B.curQ; const m=B.mon;
+  const correct = (choice===q.a);
+  B.qPos++;
+  if(correct){
+    const crit=Math.random()<0.22;
+    let dmg=G.atk+Math.floor(Math.random()*5);
+    if(crit) dmg=Math.floor(dmg*1.8);
+    B.enemyHp=Math.max(0,B.enemyHp-dmg);
+    const msgs=[`${G.name}の こうげき！`];
+    if(crit) msgs.push(`かいしんの いちげき！！`);
+    queueMessages(msgs, ()=>{
+      hitEnemy(dmg,crit);
+      setTimeout(()=>{
+        queueMessages([`${m.name}に <span class="after">${dmg}</span>の ダメージ！`], ()=>{
+          if(B.enemyHp<=0){ defeatEnemy(); }
+          else showExplain(q,true);
+        });
+      }, 420);
+    });
+  } else {
+    const edmg = (B.area.boss?10:7) + Math.floor(Math.random()*4);
+    G.hp=Math.max(0,G.hp-edmg);
+    queueMessages([`ざんねん！ こうげきは はずれた…`, `${m.name}の こうげき！`], ()=>{
+      hitPlayer();
+      updateBars();
+      setTimeout(()=>{
+        queueMessages([`${G.name}は <span class="after">${edmg}</span>の ダメージを うけた！`], ()=>{
+          if(G.hp<=0){ gameOver(); }
+          else showExplain(q,false);
+        });
+      },380);
+    });
+  }
+}
+function hitEnemy(dmg,crit){
+  const sp=document.getElementById("sprite"); const scene=document.getElementById("scene");
+  sp.classList.remove("hit"); void sp.offsetWidth; sp.classList.add("hit");
+  const pop=document.getElementById("dmg"); pop.textContent=dmg; pop.className="dmg-pop pixel go"+(crit?" crit":"");
+  setTimeout(()=>pop.className="dmg-pop pixel",800);
+  updateBars();
+}
+function hitPlayer(){
+  const scene=document.getElementById("scene");
+  scene.classList.remove("flash-red"); void scene.offsetWidth; scene.classList.add("flash-red");
+}
+
+function showExplain(q,correct){
+  const dlg=document.getElementById("dialog");
+  dlg.style.cursor="default"; dlg.onclick=null;
+  dlg.innerHTML=`<div class="msgbox explain">
+      <div class="ans-badge pixel">こたえは 「<b class="${q.a?"ok":"ng"}">${q.a?"◯":"✕"}</b>」　${correct?'<span class="ok">せいかい！</span>':'<span class="ng">ざんねん…</span>'}</div>
+      <div class="exp-text">${esc(q.exp)}</div>
+      <button class="btn gold pixel" id="nextQ">つぎへ</button>
+    </div>`;
+  document.getElementById("nextQ").onclick=()=>askQuestion();
+}
+
+function defeatEnemy(){
+  const sp=document.getElementById("sprite"); sp.classList.add("dead");
+  updateBars();
+  const m=B.mon;
+  const gained = m.questions.length * (B.area.boss?9:6) + 6;
+  setTimeout(()=>{
+    queueMessages([`${m.name}を やっつけた！`, `けいけんち <span class="after">${gained}</span>を てにいれた！`], ()=>{
+      gainXp(gained, ()=>{
+        // mark clear progress
+        const prev=G.clears[B.area.id]||0;
+        G.clears[B.area.id]=Math.max(prev, B.monIdx+1);
+        save();
+        if(B.monIdx+1 < B.area.monsters.length){
+          B.monIdx++; G.hp=Math.min(G.maxHp, G.hp+Math.ceil(G.maxHp*0.35)); // partial heal
+          beginMonster();
+        } else {
+          areaClearScreen();
+        }
+      });
+    });
+  }, 620);
+}
+
+function gainXp(amount, done){
+  G.xp+=amount;
+  let leveled=[];
+  while(G.xp>=xpToNext()){
+    G.xp-=xpToNext();
+    G.level++;
+    const hpUp=6+Math.floor(Math.random()*4), atkUp=2+Math.floor(Math.random()*2);
+    G.maxHp+=hpUp; G.atk+=atkUp; G.hp=G.maxHp;
+    leveled.push(`レベルが ${G.level}に あがった！　さいだいHP+${hpUp}　こうげき+${atkUp}`);
+  }
+  save();
+  if(leveled.length){
+    queueMessages(leveled.map(t=>`<span class="lv-up">${t}</span>`), done);
+  } else { done(); }
+}
+
+function areaClearScreen(){
+  const area=B.area;
+  const nextIdx=B.areaIdx+1;
+  const allDone = AREAS.every(areaCleared);
+  app.innerHTML=`
+  <section class="screen"><div class="win result">
+    <h2 class="win-c pixel">${area.boss?"ぜんクリア！":"エリア クリア！"}</h2>
+    <div class="big">${area.boss?"👑":"🎉"}</div>
+    <p>${esc(area.name)} の まものを すべて たおした！</p>
+    ${area.boss||allDone
+      ? `<p class="lv-up pixel">おめでとう！ 全エリアを 制覇した！<br>この調子で 本番も 合格を つかもう。</p>`
+      : `<p>つぎの エリアが かいほうされた。</p>`}
+    <p style="color:var(--gold)" class="pixel">Lv ${G.level}　HP ${G.maxHp}　こうげき ${G.atk}</p>
+    ${(!area.boss && nextIdx<AREAS.length)?`<button class="btn gold pixel" id="nextArea">つぎの エリアへ すすむ</button>`:""}
+    <button class="btn pixel" id="toMap">マップへ もどる</button>
+  </div></section>`;
+  save();
+  const na=document.getElementById("nextArea");
+  if(na) na.onclick=()=>startArea(nextIdx);
+  document.getElementById("toMap").onclick=()=>renderMap();
+}
+
+function gameOver(){
+  const sp=document.getElementById("pnum"); if(sp) sp.textContent=`HP 0/${G.maxHp}`;
+  queueMessages([`${G.name}は たおれてしまった…`, `めのまえが まっくらに なった。`], ()=>{
+    app.innerHTML=`
+    <section class="screen"><div class="win result">
+      <h2 class="ng pixel" style="color:var(--hp)">ぜんめつ…</h2>
+      <div class="big">💀</div>
+      <p>だいじょうぶ。まちがえた もんだいこそ、<br>いちばんの けいけんち。</p>
+      <p style="color:var(--gold)" class="pixel">Lv ${G.level}　こうげき ${G.atk}</p>
+      <button class="btn gold pixel" id="retry">もういちど ちょうせん</button>
+      <button class="btn pixel" id="toMap2">マップへ もどる</button>
+    </div></section>`;
+    G.hp=G.maxHp; save();
+    document.getElementById("retry").onclick=()=>startArea(B.areaIdx);
+    document.getElementById("toMap2").onclick=()=>renderMap();
+  });
+}
+
+/* boot */
+renderTitle();
+</script>
+
+</body>
+</html>

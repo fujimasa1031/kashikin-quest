@@ -544,7 +544,7 @@ const AREAS = [
 const SAVE_KEY="kashikin_quest_save_v1";
 let G=null;
 function newGame(name){
-  return { name:name||"みならい", level:1, xp:0, maxHp:40, hp:40, atk:12, clears:{} };
+  return { name:name||"みならい", level:1, xp:0, maxHp:40, hp:40, atk:12, clears:{}, seen:{} };
 }
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(G)); }catch(e){} }
 function load(){ try{ const s=localStorage.getItem(SAVE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
@@ -552,6 +552,16 @@ function xpToNext(){ return G.level*28; }
 function areaCleared(a){ return (G.clears[a.id]||0) >= a.monsters.length; }
 function areaUnlocked(i){ return i===0 || areaCleared(AREAS[i-1]); }
 function totalQuestions(){ return Object.values(POOLS).reduce((n,p)=>n+p.length,0); }
+/* 各問題に安定したIDを付与（科目キー+配列index。新規は末尾に追記するのでindexは不変） */
+Object.keys(POOLS).forEach(k=>POOLS[k].forEach((q,i)=>{ if(!q._id) q._id=k+"#"+i; }));
+/* 解いた問題数（ユニーク） */
+function seenCount(){ return G&&G.seen ? Object.keys(G.seen).length : 0; }
+/* まだ解いていない問題を優先した出題デッキを作る */
+function buildDeck(pool){
+  const seen=(G&&G.seen)||{}; const fresh=[], old=[];
+  pool.forEach(q=>{ seen[q._id] ? old.push(q) : fresh.push(q); });
+  return shuffle(fresh).concat(shuffle(old));
+}
 
 const app=document.getElementById("app");
 function esc(s){return s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
@@ -574,16 +584,18 @@ function renderTitle(){
     </div>
     <p class="note">正解すれば まものに こうげき。まちがえると まものが 反撃してくる。<br>
       たおした まものの 経験値で レベルが 上がり、こうげき力と 最大HPが のびる。<br>
-      問題は 毎回ランダム出題。ぜんぶで ${totalQuestions()}問・5かいそう。</p>
-    ${saved?`<div class="subrow"><button class="btn pixel" id="resetBtn">さいしょから やりなおす</button></div>`:""}
+      まだ 解いていない 問題を ゆうせんして 出題。ぜんぶで ${totalQuestions()}問・5かいそう。<br>
+      ${saved?`これまでに <b>${Math.min(saved.seen?Object.keys(saved.seen).length:0,totalQuestions())}/${totalQuestions()}問</b> を 制覇。`:"全問 せいはを めざそう！"}</p>
+    ${saved?`<div class="subrow"><button class="btn pixel" id="resetSeenBtn" style="font-size:13px">といた記録を リセット（復習用）</button><button class="btn pixel" id="resetBtn">さいしょから やりなおす</button></div>`:""}
     <p class="foot">貸金業務取扱主任者試験の学習用ゲームです。出題は学習目的の要点整理であり、<br>実際の試験問題・法令の正式な条文とは異なる場合があります。</p>
   </section>`;
   const start=()=>{ const v=(document.getElementById("pname").value||"").trim().slice(0,8)||"みならい"; G=newGame(v); save(); renderMap(); };
   document.getElementById("startBtn").onclick=start;
   document.getElementById("pname").addEventListener("keydown",e=>{ if(e.key==="Enter") start(); });
   if(saved){
-    document.getElementById("contBtn").onclick=()=>{ G=saved; if(!G.clears)G.clears={}; if(G.hp<=0)G.hp=G.maxHp; renderMap(); };
+    document.getElementById("contBtn").onclick=()=>{ G=saved; if(!G.clears)G.clears={}; if(!G.seen)G.seen={}; if(G.hp<=0)G.hp=G.maxHp; renderMap(); };
     document.getElementById("resetBtn").onclick=()=>{ try{localStorage.removeItem(SAVE_KEY);}catch(e){} renderTitle(); };
+    document.getElementById("resetSeenBtn").onclick=()=>{ saved.seen={}; try{localStorage.setItem(SAVE_KEY,JSON.stringify(saved));}catch(e){} renderTitle(); };
   }
 }
 
@@ -636,13 +648,13 @@ function startArea(areaIdx){
   const startMon = cleared>=area.monsters.length ? 0 : cleared;
   G.hp=G.maxHp;
   const pool = area.mixAll ? Object.values(POOLS).flat() : (POOLS[area.id]||[]);
-  B={ areaIdx, monIdx:startMon, area, deck:shuffle(pool.slice()), deckPos:0 };
+  B={ areaIdx, monIdx:startMon, area, deck:buildDeck(pool), deckPos:0 };
   beginMonster();
 }
 function drawQuestions(n){
   const out=[];
   for(let k=0;k<n;k++){
-    if(B.deckPos>=B.deck.length){ B.deck=shuffle(B.deck); B.deckPos=0; }
+    if(B.deckPos>=B.deck.length){ const pool=B.area.mixAll?Object.values(POOLS).flat():(POOLS[B.area.id]||[]); B.deck=buildDeck(pool); B.deckPos=0; }
     out.push(B.deck[B.deckPos++]);
   }
   return out;
@@ -727,6 +739,7 @@ function answer(choice){
   const q=B.curQ; const m=B.mon;
   const correct = (choice===q.a);
   B.qPos++;
+  if(q._id){ if(!G.seen)G.seen={}; G.seen[q._id]=1; save(); }
   if(correct){
     const crit=Math.random()<0.22;
     let dmg=G.atk+Math.floor(Math.random()*5);
